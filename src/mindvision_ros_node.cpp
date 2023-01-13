@@ -78,6 +78,16 @@ int main(int argc, char** argv)
             CameraSetGamma、CameraSetConrast、CameraSetGain等设置图像伽马、对比度、RGB数字增益等等。
             更多的参数的设置方法，，清参考MindVision_Demo。本例程只是为了演示如何将SDK中获取的图像，转成OpenCV的图像格式,以便调用OpenCV的图像处理函数进行后续开发
         */
+        double	m_fExpLineTime=0;//当前的行曝光时间，单位为us
+
+        if(CameraSetAeState(hCamera[cam], FALSE) != 0)
+            ROS_INFO("Manual exposure set failed...");
+        CameraSetAnalogGain(hCamera[cam], 0.75);
+        CameraGetExposureLineTime(hCamera[cam], &m_fExpLineTime);
+        CameraSetExposureTime(hCamera[cam], 60000);
+        
+        // CameraSet
+
         if(tCapability[cam].sIspCapacity.bMonoSensor){
             channel=1;
             CameraSetIspOutFormat(hCamera[cam],CAMERA_MEDIA_TYPE_MONO8);
