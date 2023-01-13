@@ -1,4 +1,8 @@
 #include <ros/ros.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <image_transport/image_transport.h>
 
 #include "CameraApi.h" //相机SDK的API头文件
 
@@ -10,8 +14,14 @@ using namespace cv;
 
 unsigned char           * g_pRgbBuffer;     //处理后数据缓存区
 
-int main()
+int main(int argc, char** argv)
 {
+    ros::init(argc, argv, "mindvision_gige_node");
+    ros::NodeHandle nh;
+
+    image_transport::ImageTransport it(nh);
+    image_transport::Publisher img_pub = it.advertise("mindvision/image", 1);
+
     int                     iCameraCounts = 1;
     int                     iStatus=-1;
     tSdkCameraDevInfo       tCameraEnumList;
@@ -20,7 +30,7 @@ int main()
     tSdkFrameHead           sFrameInfo;
     BYTE*			        pbyBuffer;
     int                     iDisplayFrames = 10000;
-    IplImage *iplImage = NULL;
+    // IplImage *iplImage = NULL;
     int                     channel=3;
 
     CameraSdkInit(1);
@@ -74,7 +84,7 @@ int main()
 
 
     //循环显示1000帧图像
-    while(iDisplayFrames--)
+    while(ros::ok() && iDisplayFrames--)
     {
         if(CameraGetImageBuffer(hCamera,&sFrameInfo,&pbyBuffer,1000) == CAMERA_STATUS_SUCCESS)
 		{
@@ -85,9 +95,12 @@ int main()
 					sFrameInfo.uiMediaType == CAMERA_MEDIA_TYPE_MONO8 ? CV_8UC1 : CV_8UC3,
 					g_pRgbBuffer
 					);
-			imshow("Opencv Demo", matImage);
+            
+            sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", matImage).toImageMsg();
+            img_pub.publish(msg);
+			// imshow("Opencv Demo", matImage);
 
-            waitKey(5);
+            // waitKey(5);
 
             //在成功调用CameraGetImageBuffer后，必须调用CameraReleaseImageBuffer来释放获得的buffer。
 			//否则再次调用CameraGetImageBuffer时，程序将被挂起一直阻塞，直到其他线程中调用CameraReleaseImageBuffer来释放了buffer
