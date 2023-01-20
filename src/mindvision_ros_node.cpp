@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/image_encodings.h>
 #include <image_transport/image_transport.h>
 
@@ -24,6 +25,8 @@ int main(int argc, char** argv)
     image_transport::ImageTransport it(nh);
     image_transport::Publisher cam1_img_pub = it.advertise("mindvision1/image", 1);
     image_transport::Publisher cam2_img_pub = it.advertise("mindvision2/image", 1);
+    ros::Publisher cam1_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision1/camera_info", 1);
+    ros::Publisher cam2_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision2/camera_info", 1);
 
     int                     iCameraCounts = NUM_CAMERAS;
     int                     iStatus=-1;
@@ -97,6 +100,27 @@ int main(int argc, char** argv)
         }
     }
 
+    sensor_msgs::CameraInfo cam1_info, cam2_info;
+    tSdkImageResolution info1, info2;
+    CameraGetImageResolution(hCamera[0], &info1);
+    CameraGetImageResolution(hCamera[1], &info2);
+
+    cam1_info.header.seq = info1.iIndex;
+    cam1_info.width = info1.iWidth;
+    cam1_info.height = info1.iHeight;
+
+    cam2_info.header.seq = info2.iIndex;
+    cam2_info.width = info2.iWidth;
+    cam2_info.height = info2.iHeight;
+
+    // for(int d = 0; d < 5; d++)
+    // {
+    //     cam1_info.D.at(d) = cam1_dist_coff[d];
+    //     cam2_info.D.at(d) = cam2_dist_coff[d];
+    // }
+
+    
+
     sensor_msgs::ImagePtr msg[NUM_CAMERAS];
     while (ros::ok())
     {
@@ -122,8 +146,51 @@ int main(int argc, char** argv)
                 CameraReleaseImageBuffer(hCamera[cam], pbyBuffer[cam]);
             }
         }
+        msg[0]->header.frame_id = cam1_info.header.frame_id = "mindvision1";
+        cam1_info.header.stamp = cam1_info.header.stamp;
+        msg[1]->header.frame_id = cam2_info.header.frame_id = "mindvision2";
+        cam2_info.header.stamp = cam2_info.header.stamp;
+
+        int cam1_width, cam1_height, cam2_width, cam2_height;
+        double cam1_matrix[4], cam2_matrix[4];
+        double cam1_dist_coff[5], cam2_dist_coff[5];
+        CameraGetUndistortParams(hCamera[0], &cam1_width, &cam1_height, cam1_matrix, cam1_dist_coff);
+        CameraGetUndistortParams(hCamera[1], &cam2_width, &cam2_height, cam2_matrix, cam2_dist_coff);
+
+        cam1_matrix[0] = 2630.8;
+        cam1_matrix[1] = 2632.5;
+        cam1_matrix[2] = 2108.1;
+        cam1_matrix[3] = 1524.7;
+
+        cam2_matrix[0] = 200;
+        cam2_matrix[1] = 100;
+        cam2_matrix[2] = cam2_info.width/2;
+        cam2_matrix[3] = cam2_info.height/2;
+
+        cam1_info.K.at(0) = cam1_matrix[0];
+        cam1_info.K.at(2) = cam1_matrix[2];
+        cam1_info.K.at(4) = cam1_matrix[1];
+        cam1_info.K.at(5) = cam1_matrix[3];
+
+        cam2_info.K.at(0) = cam2_matrix[0];
+        cam2_info.K.at(2) = cam2_matrix[2];
+        cam2_info.K.at(4) = cam2_matrix[1];
+        cam2_info.K.at(5) = cam2_matrix[3];
+
+        cam1_info.P.at(0) = cam1_matrix[0];
+        cam1_info.P.at(2) = cam1_matrix[2];
+        cam1_info.P.at(5) = cam1_matrix[1];
+        cam1_info.P.at(6) = cam1_matrix[3];
+
+        cam2_info.P.at(0) = cam2_matrix[0];
+        cam2_info.P.at(2) = cam2_matrix[2];
+        cam2_info.P.at(5) = cam2_matrix[1];
+        cam2_info.P.at(6) = cam2_matrix[3];
+        
         cam1_img_pub.publish(msg[0]);
         cam2_img_pub.publish(msg[1]);
+        cam1_info_pub.publish(cam1_info);
+        cam2_info_pub.publish(cam2_info);
     }
 
     for(int cam = 0; cam < iCameraCounts; cam++)
