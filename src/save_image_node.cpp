@@ -87,4 +87,7 @@ int main(int argc, char** argv)
     spinner.start();
 
     while(ros::ok());
+    
+    cv_img1_ptr->image.~Mat();
+    cv_img2_ptr->image.~Mat();
 }
