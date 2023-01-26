@@ -12,7 +12,6 @@
 
 #include <string>
 
-// sensor_msgs::Image img1, img2;
 cv_bridge::CvImagePtr cv_img1_ptr, cv_img2_ptr;
 bool cam1_up, cam2_up;
 
@@ -51,20 +50,25 @@ bool save_srv(mindvision_gige_ros::Save_Image::Request& req,
     static int imgCount;
     cam1_up = false; cam2_up = false;
 
-    ROS_INFO("Waiting for image ...");
-    while(!(cam1_up && cam2_up) && ros::ok()) { std::cout << "."; }
+    ros::Rate rate(100);
+    std::cout << "Waiting for image ...";
+    while(!(cam1_up && cam2_up) && ros::ok()) { rate.sleep(); std::cout << "."; }
     std::cout << std::endl;
 
-    ROS_INFO("%d Img Saved !" , imgCount);
-    std::string imgpath = "/home/pibot/imgs/mindvision_save/";
-    std::string imgLName = imgpath +std::to_string(imgCount)+"L.png";
-    std::string imgRName = imgpath +std::to_string(imgCount)+"R.png";
+    if(ros::ok())
+    {
+        ROS_INFO("Image %d Saved !" , imgCount);
+        std::string imgpath = "/home/pibot/imgs/mindvision_save/";
+        std::string imgLName = imgpath +std::to_string(imgCount)+"L.png";
+        std::string imgRName = imgpath +std::to_string(imgCount)+"R.png";
 
-    imwrite(imgLName, cv_img1_ptr->image);
-    imwrite(imgRName, cv_img2_ptr->image);
+        imwrite(imgLName, cv_img1_ptr->image);
+        imwrite(imgRName, cv_img2_ptr->image);
 
-    imgCount++;
-
+        imgCount++;
+    }
+    else
+        return false;
     return true;
 }
 
@@ -82,12 +86,5 @@ int main(int argc, char** argv)
     ros::AsyncSpinner spinner(3);
     spinner.start();
 
-    while(ros::ok())
-    {
-        // cv_img1_ptr->image
-        // cv::Mat img1mat(cvSize(img1.width, img1.height), CV_8UC3);
-        // cv::Mat img2mat(cvSize(img2.width, img2.height), CV_8UC3);
-
-        // cv_bridge::CvImage()
-    }
+    while(ros::ok());
 }
