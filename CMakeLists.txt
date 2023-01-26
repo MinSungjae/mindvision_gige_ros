@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(mindvision_ros)
+project(mindvision_gige_ros)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
 
   cv_bridge
   image_transport
+
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -59,11 +61,10 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Save_Image.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -73,10 +74,10 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   sensor_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,7 +109,7 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
- INCLUDE_DIRS include
+  # INCLUDE_DIRS include
 #  LIBRARIES mindvision_ros
 #  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
@@ -140,6 +141,7 @@ include
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/mindvision_ros_node.cpp)
+add_executable(save_image_node src/save_image_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,11 +152,17 @@ add_executable(${PROJECT_NAME}_node src/mindvision_ros_node.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(save_image_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node
   ${catkin_LIBRARIES}
   ${PROJECT_SOURCE_DIR}/lib/libMVSDK.so
+  ${OpenCV_LIBS}
+)
+
+target_link_libraries(save_image_node
+  ${catkin_LIBRARIES}
   ${OpenCV_LIBS}
 )
 
