@@ -78,8 +78,8 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
 
-    ros::Subscriber cam1_sub = nh.subscribe("mindvision1/image", 1, &cam1_cb);
-    ros::Subscriber cam2_sub = nh.subscribe("mindvision2/image", 1, &cam2_cb);
+    ros::Subscriber cam1_sub = nh.subscribe("mindvision1/image_raw", 1, &cam1_cb);
+    ros::Subscriber cam2_sub = nh.subscribe("mindvision2/image_raw", 1, &cam2_cb);
 
     ros::ServiceServer save_server = nh.advertiseService("image_saver", save_srv);
 

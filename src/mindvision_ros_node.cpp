@@ -3,6 +3,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/distortion_models.h>
 #include <image_transport/image_transport.h>
 
 #include "CameraApi.h" //相机SDK的API头文件
@@ -23,8 +24,8 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     image_transport::ImageTransport it(nh);
-    image_transport::Publisher cam1_img_pub = it.advertise("mindvision1/image", 1);
-    image_transport::Publisher cam2_img_pub = it.advertise("mindvision2/image", 1);
+    image_transport::Publisher cam1_img_pub = it.advertise("mindvision1/image_raw", 1);
+    image_transport::Publisher cam2_img_pub = it.advertise("mindvision2/image_raw", 1);
     ros::Publisher cam1_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision1/camera_info", 1);
     ros::Publisher cam2_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision2/camera_info", 1);
 
@@ -167,25 +168,47 @@ int main(int argc, char** argv)
         cam2_matrix[2] = cam2_info.width/2;
         cam2_matrix[3] = cam2_info.height/2;
 
-        cam1_info.K.at(0) = cam1_matrix[0];
-        cam1_info.K.at(2) = cam1_matrix[2];
-        cam1_info.K.at(4) = cam1_matrix[1];
-        cam1_info.K.at(5) = cam1_matrix[3];
+        cam1_info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+        cam2_info.distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+        
+        std::vector<double> cam1_distortion_matrix = {-0.0995, 0.0856, -0.00081337, -0.0011, 0.0};
+        cam1_info.D = cam1_distortion_matrix;
 
-        cam2_info.K.at(0) = cam2_matrix[0];
-        cam2_info.K.at(2) = cam2_matrix[2];
-        cam2_info.K.at(4) = cam2_matrix[1];
-        cam2_info.K.at(5) = cam2_matrix[3];
+        std::vector<double> cam2_distortion_matrix = {-0.1078, 0.0960, -0.0012, 0.0011, 0.0};
+        cam2_info.D = cam2_distortion_matrix;
 
-        cam1_info.P.at(0) = cam1_matrix[0];
-        cam1_info.P.at(2) = cam1_matrix[2];
-        cam1_info.P.at(5) = cam1_matrix[1];
-        cam1_info.P.at(6) = cam1_matrix[3];
 
-        cam2_info.P.at(0) = cam2_matrix[0];
-        cam2_info.P.at(2) = cam2_matrix[2];
-        cam2_info.P.at(5) = cam2_matrix[1];
-        cam2_info.P.at(6) = cam2_matrix[3];
+        cam1_info.R.at(0) = 1.0;
+        cam1_info.R.at(4) = 1.0;
+        cam1_info.R.at(8) = 1.0;
+
+        cam2_info.R.at(0) = 1.0;
+        cam2_info.R.at(4) = 1.0;
+        cam2_info.R.at(8) = 1.0;
+
+        cam1_info.K.at(0) = 2556.3;
+        cam1_info.K.at(2) = 2101.1;
+        cam1_info.K.at(4) = 2555.6;
+        cam1_info.K.at(5) = 1529.4;
+        cam1_info.K.at(8) = 1.0;
+
+        cam2_info.K.at(0) = 2549.6;
+        cam2_info.K.at(2) = 2068.6;
+        cam2_info.K.at(4) = 2549.1;
+        cam2_info.K.at(5) = 1529.9;
+        cam2_info.K.at(8) = 1.0;
+
+        cam1_info.P.at(0) = 2556.3;
+        cam1_info.P.at(2) = 2101.1;
+        cam1_info.P.at(5) = 2555.6;
+        cam1_info.P.at(6) = 1529.4;
+        cam1_info.P.at(10) = 1.0;
+
+        cam2_info.P.at(0) = 2549.6;
+        cam2_info.P.at(2) = 2068.6;
+        cam2_info.P.at(5) = 2549.1;
+        cam2_info.P.at(6) = 1529.9;
+        cam2_info.P.at(10) = 1.0;
         
         cam1_img_pub.publish(msg[0]);
         cam2_img_pub.publish(msg[1]);
