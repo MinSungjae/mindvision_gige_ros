@@ -12,11 +12,22 @@
 #include "opencv2/highgui/highgui.hpp"
 #include <stdio.h>
 
+#include "std_srvs/Empty.h"
+
 using namespace cv;
 
 #define NUM_CAMERAS 2
 
 unsigned char *g_pRgbBuffer[NUM_CAMERAS];     //处理后数据缓存区
+int           hCamera[NUM_CAMERAS];
+
+bool once_wb_service(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res)
+{
+    for(int idx = 0; idx < NUM_CAMERAS; idx++)
+        CameraSetOnceWB(hCamera[idx]);
+
+    return true;
+}
 
 int main(int argc, char** argv)
 {
@@ -26,13 +37,16 @@ int main(int argc, char** argv)
     image_transport::ImageTransport it(nh);
     image_transport::Publisher cam1_img_pub = it.advertise("mindvision1/image_raw", 1);
     image_transport::Publisher cam2_img_pub = it.advertise("mindvision2/image_raw", 1);
+
+    ros::ServiceServer autoWB_server = nh.advertiseService("auto_WB", once_wb_service);
+
     ros::Publisher cam1_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision1/camera_info", 1);
     ros::Publisher cam2_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision2/camera_info", 1);
 
     int                     iCameraCounts = NUM_CAMERAS;
     int                     iStatus=-1;
     tSdkCameraDevInfo       tCameraEnumList[NUM_CAMERAS];
-    int                     hCamera[NUM_CAMERAS];
+    // int                     hCamera[NUM_CAMERAS];
     tSdkCameraCapbility     tCapability[NUM_CAMERAS];      //设备描述信息
     tSdkFrameHead           sFrameInfo[NUM_CAMERAS];
     BYTE*			        pbyBuffer[NUM_CAMERAS];
@@ -214,6 +228,7 @@ int main(int argc, char** argv)
         cam2_img_pub.publish(msg[1]);
         cam1_info_pub.publish(cam1_info);
         cam2_info_pub.publish(cam2_info);
+        ros::spinOnce();
     }
 
     for(int cam = 0; cam < iCameraCounts; cam++)

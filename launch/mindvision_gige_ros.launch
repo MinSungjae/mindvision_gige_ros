@@ -1,6 +1,6 @@
 <launch>
     <node name="mindvision_gige_ros_node" pkg="mindvision_gige_ros" type="mindvision_gige_ros_node" output="screen"/>
-    <node name="mindvision_save_image_node" pkg="mindvision_gige_ros" type="save_image_node"  output="screen"/>
+    <!-- <node name="mindvision_save_image_node" pkg="mindvision_gige_ros" type="save_image_node"  output="screen"/> -->
 
     <node name="rft_rqt_plot" pkg="rqt_gui" type="rqt_gui" args=" --perspective-file $(find mindvision_gige_ros)/rqt/mindvision.perspective"/>
 </launch>
