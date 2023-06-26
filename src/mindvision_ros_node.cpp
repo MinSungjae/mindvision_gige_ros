@@ -11,6 +11,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include <stdio.h>
+#include <chrono>
 
 #include "std_srvs/Empty.h"
 
@@ -69,7 +70,7 @@ int main(int argc, char** argv)
     //相机初始化。初始化成功后，才能调用任何其他相机相关的操作接口
     for(int cam = 0; cam < iCameraCounts; cam++)
     {
-        iStatus = CameraInit(&tCameraEnumList[cam],-1,-1,&hCamera[cam]);
+        iStatus = CameraInit(&tCameraEnumList[cam], -1, -1, &hCamera[cam]);
 
         //初始化失败
         printf("state = %d\n", iStatus);
@@ -100,10 +101,19 @@ int main(int argc, char** argv)
 
         if(CameraSetAeState(hCamera[cam], FALSE) != 0)
             ROS_INFO("Manual exposure set failed...");
-        CameraSetAnalogGain(hCamera[cam], 0.75);
+        CameraSetAnalogGain(hCamera[cam], 15.0);
+        int err_code = -1;
+        // if(err_code = CameraSetExposureTime(hCamera[cam], 50000) == CAMERA_STATUS_SUCCESS)
+        // {
+        //     CameraGetExposureLineTime(hCamera[cam], &m_fExpLineTime);
+        //     std::cout << "Succeed to set exposure time for camera: " << cam << "to " << m_fExpLineTime*2160 << "sec" << std::endl;
+        // }
+        // else
+        //     std::cout << "Failed to set exposure for camera " << cam << ", code : " << err_code << std::endl;
+        CameraSetAeState(hCamera[cam], true);
+        CameraSetAeTarget(hCamera[cam], 75);
         CameraGetExposureLineTime(hCamera[cam], &m_fExpLineTime);
-        CameraSetExposureTime(hCamera[cam], 60000);
-        
+        std::cout << "Succeed to set exposure time for camera: " << cam << "to " << m_fExpLineTime*3072 << "sec" << std::endl;
         // CameraSet
 
         if(tCapability[cam].sIspCapacity.bMonoSensor){
@@ -126,19 +136,14 @@ int main(int argc, char** argv)
 
     cam2_info.header.seq = info2.iIndex;
     cam2_info.width = info2.iWidth;
-    cam2_info.height = info2.iHeight;
+    cam2_info.height = info2.iHeight;    
 
-    // for(int d = 0; d < 5; d++)
-    // {
-    //     cam1_info.D.at(d) = cam1_dist_coff[d];
-    //     cam2_info.D.at(d) = cam2_dist_coff[d];
-    // }
 
-    
-
+    ros::Rate rate(30);
     sensor_msgs::ImagePtr msg[NUM_CAMERAS];
     while (ros::ok())
     {
+        auto start = std::chrono::high_resolution_clock::now();
         for (int cam = 0; cam < iCameraCounts; cam++)
         {
             if (CameraGetImageBuffer(hCamera[cam], &sFrameInfo[cam], &pbyBuffer[cam], 1000) == CAMERA_STATUS_SUCCESS)
@@ -161,6 +166,9 @@ int main(int argc, char** argv)
                 CameraReleaseImageBuffer(hCamera[cam], pbyBuffer[cam]);
             }
         }
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Data convert time: " << duration.count() << std::endl;
         msg[0]->header.frame_id = cam1_info.header.frame_id = "mindvision1";
         cam1_info.header.stamp = cam1_info.header.stamp;
         msg[1]->header.frame_id = cam2_info.header.frame_id = "mindvision2";
@@ -224,11 +232,13 @@ int main(int argc, char** argv)
         cam2_info.P.at(6) = 1529.9;
         cam2_info.P.at(10) = 1.0;
         
+        cam1_info.header.stamp = cam2_info.header.stamp = msg[1]->header.stamp = msg[0]->header.stamp = ros::Time::now();
         cam1_img_pub.publish(msg[0]);
         cam2_img_pub.publish(msg[1]);
         cam1_info_pub.publish(cam1_info);
         cam2_info_pub.publish(cam2_info);
         ros::spinOnce();
+        rate.sleep();
     }
 
     for(int cam = 0; cam < iCameraCounts; cam++)
