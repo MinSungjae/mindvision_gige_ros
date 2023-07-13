@@ -14,6 +14,7 @@
 #include <chrono>
 
 #include "std_srvs/Empty.h"
+#include "mindvision_gige_ros/AutoBrightTarget.h"
 
 using namespace cv;
 
@@ -22,11 +23,22 @@ using namespace cv;
 unsigned char *g_pRgbBuffer[NUM_CAMERAS];     //处理后数据缓存区
 int           hCamera[NUM_CAMERAS];
 
+int auto_bright_target = 50;
+
 bool once_wb_service(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res)
 {
     for(int idx = 0; idx < NUM_CAMERAS; idx++)
         CameraSetOnceWB(hCamera[idx]);
 
+    return true;
+}
+
+bool set_auto_bright_service(mindvision_gige_ros::AutoBrightTarget::Request& req,
+                            mindvision_gige_ros::AutoBrightTarget::Response& res)
+{
+    auto_bright_target = req.target_brightness;
+    for(int cam = 0; cam < NUM_CAMERAS; cam++)
+        CameraSetAeTarget(hCamera[cam], auto_bright_target);
     return true;
 }
 
@@ -40,6 +52,7 @@ int main(int argc, char** argv)
     image_transport::Publisher cam2_img_pub = it.advertise("mindvision2/image_raw", 1);
 
     ros::ServiceServer autoWB_server = nh.advertiseService("auto_WB", once_wb_service);
+    ros::ServiceServer autoBT_server = nh.advertiseService("auto_BT", set_auto_bright_service);
 
     ros::Publisher cam1_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision1/camera_info", 1);
     ros::Publisher cam2_info_pub = nh.advertise<sensor_msgs::CameraInfo>("mindvision2/camera_info", 1);
@@ -111,7 +124,7 @@ int main(int argc, char** argv)
         // else
         //     std::cout << "Failed to set exposure for camera " << cam << ", code : " << err_code << std::endl;
         CameraSetAeState(hCamera[cam], true);
-        CameraSetAeTarget(hCamera[cam], 75);
+        CameraSetAeTarget(hCamera[cam], auto_bright_target);
         CameraGetExposureLineTime(hCamera[cam], &m_fExpLineTime);
         std::cout << "Succeed to set exposure time for camera: " << cam << "to " << m_fExpLineTime*3072 << "sec" << std::endl;
         // CameraSet

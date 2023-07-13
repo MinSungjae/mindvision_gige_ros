@@ -64,6 +64,7 @@ find_package(OpenCV REQUIRED)
 add_service_files(
   FILES
   Save_Image.srv
+  AutoBrightTarget.srv
 )
 
 ## Generate actions in the 'action' folder
